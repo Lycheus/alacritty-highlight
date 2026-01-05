@@ -83,6 +83,9 @@ pub struct UiConfig {
     /// Regex hints for interacting with terminal content.
     pub hints: Hints,
 
+    /// Persistent keyword highlighting for terminal content.
+    pub keyword_highlight: KeywordHighlight,
+
     /// Config for the alacritty_terminal itself.
     pub terminal: Terminal,
 
@@ -291,6 +294,46 @@ impl Hints {
         &self.alphabet.0
     }
 }
+
+/// Persistent keyword highlighting.
+#[derive(ConfigDeserialize, Serialize, Clone, Debug, Default, PartialEq, Eq)]
+pub struct KeywordHighlight {
+    /// Enable keyword highlighting.
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Highlight rules.
+    #[serde(default)]
+    pub rules: Vec<KeywordHighlightRule>,
+}
+
+fn default_keyword_highlight_foreground() -> crate::display::color::CellRgb {
+    crate::display::color::CellRgb::CellForeground
+}
+
+fn default_keyword_highlight_background() -> crate::display::color::CellRgb {
+    crate::display::color::CellRgb::CellBackground
+}
+
+/// Single keyword highlight rule.
+#[derive(SerdeReplace, Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct KeywordHighlightRule {
+    /// Regex pattern which triggers this highlight.
+    pub regex: LazyRegex,
+
+    /// Foreground override for matched cells.
+    #[serde(default = "default_keyword_highlight_foreground")]
+    pub foreground: crate::display::color::CellRgb,
+
+    /// Background override for matched cells.
+    #[serde(default = "default_keyword_highlight_background")]
+    pub background: crate::display::color::CellRgb,
+
+    /// Underline matches in addition to color overrides.
+    #[serde(default)]
+    pub underline: bool,
+}
+
 
 #[derive(SerdeReplace, Serialize, Clone, Debug, PartialEq, Eq)]
 struct HintsAlphabet(String);
@@ -503,6 +546,18 @@ pub struct HintMouse {
 /// Lazy regex with interior mutability.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LazyRegex(Rc<RefCell<LazyRegexVariant>>);
+
+impl SerdeReplace for LazyRegex {
+    fn replace(
+        &mut self,
+        value: toml::Value,
+    ) -> Result<(), Box<dyn std::error::Error + 'static>> {
+        // Reuse serde to parse LazyRegex from TOML.
+        *self = value.try_into::<LazyRegex>()?;
+        Ok(())
+    }
+}
+
 
 impl LazyRegex {
     /// Execute a function with the compiled regex DFAs as parameter.

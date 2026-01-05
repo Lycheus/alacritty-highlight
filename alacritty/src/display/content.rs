@@ -30,6 +30,7 @@ pub struct RenderableContent<'a> {
     cursor_shape: CursorShape,
     cursor_point: Point<usize>,
     search: Option<HintMatches<'a>>,
+    keyword_highlight: Option<KeywordHighlightMatches>,
     hint: Option<Hint<'a>>,
     config: &'a UiConfig,
     colors: &'a List,
@@ -65,6 +66,8 @@ impl<'a> RenderableContent<'a> {
         let cursor_point = terminal_content.cursor.point;
         let display_offset = terminal_content.display_offset;
         let cursor_point = term::point_to_viewport(display_offset, cursor_point).unwrap();
+	    let keyword_highlight = (config.keyword_highlight.enabled && !config.keyword_highlight.rules.is_empty())
+	    .then(|| KeywordHighlightMatches::visible_matches(term, &config.keyword_highlight.rules));
 
         let hint = if display.hint_state.active() {
             display.hint_state.update_matches(term);
@@ -84,6 +87,7 @@ impl<'a> RenderableContent<'a> {
             search,
             config,
             hint,
+            keyword_highlight,
         }
     }
 
@@ -270,7 +274,18 @@ impl RenderableCell {
                 (colors.search.matches.foreground, colors.search.matches.background)
             };
             Self::compute_cell_rgb(&mut fg, &mut bg, &mut bg_alpha, config_fg, config_bg);
-        }
+        } else if let Some(rule_idx) = content
+	    .keyword_highlight
+	    .as_mut()
+	    .and_then(|kh| kh.advance(cell.point))
+	    {
+	        let rule = &content.config.keyword_highlight.rules[rule_idx];
+		Self::compute_cell_rgb(&mut fg, &mut bg, &mut bg_alpha, rule.foreground, rule.background);
+
+		if rule.underline {
+		flags.insert(Flags::UNDERLINE);
+	    }
+	}
 
         // Apply transparency to all renderable cells if `transparent_background_colors` is set
         if bg_alpha > 0. && content.config.colors.transparent_background_colors {
@@ -548,5 +563,59 @@ impl Deref for HintMatches<'_> {
 
     fn deref(&self) -> &Self::Target {
         self.matches.deref()
+    }
+}
+
+#[derive(Default)]
+struct KeywordHighlightMatches {
+    matches: Vec<KeywordHighlightMatch>,
+    index: usize,
+}
+
+#[derive(Clone, Debug)]
+struct KeywordHighlightMatch {
+    bounds: Match,
+    rule: usize,
+}
+
+impl KeywordHighlightMatches {
+    fn visible_matches<T>(
+        term: &Term<T>,
+        rules: &[crate::config::ui_config::KeywordHighlightRule],
+    ) -> Self {
+        let mut matches = Vec::new();
+
+        for (rule_idx, rule) in rules.iter().enumerate() {
+            rule.regex.with_compiled(|regex| {
+                matches.extend(
+                    hint::visible_regex_match_iter(term, regex).map(|bounds| KeywordHighlightMatch {
+                        bounds,
+                        rule: rule_idx,
+                    }),
+                );
+            });
+        }
+
+        // Keep it ordered so `advance` can run in O(1-ish) as we iterate cells.
+        matches.sort_by_key(|m| (*m.bounds.start(), cmp::Reverse(*m.bounds.end()), m.rule));
+        matches.dedup_by(|a, b| {
+            a.rule == b.rule && a.bounds.start() == b.bounds.start() && a.bounds.end() == b.bounds.end()
+        });
+
+        Self { matches, index: 0 }
+    }
+
+    fn advance(&mut self, point: Point) -> Option<usize> {
+        while let Some(m) = self.matches.get(self.index) {
+            if m.bounds.start() > &point {
+                break;
+            } else if m.bounds.end() < &point {
+                self.index += 1;
+            } else {
+                return Some(m.rule);
+            }
+        }
+
+        None
     }
 }
