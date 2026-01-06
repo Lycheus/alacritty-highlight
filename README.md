@@ -40,14 +40,16 @@ This is the spin-off version to include a terminal keyword highlighter. (mild pe
 
 ## Installation
 
-Alacritty can be installed by using various package managers on Linux, BSD,
-macOS and Windows.
+```
+git clone https://github.com/Lycheus/alacritty-highlight.git
+cd alacritty
 
-Prebuilt binaries for macOS and Windows can also be downloaded from the
-[GitHub releases page](https://github.com/alacritty/alacritty/releases).
+cargo build --release
 
-For everyone else, the detailed instructions to install Alacritty can be found
-[here](INSTALL.md).
+# run it directly:
+./target/release/alacritty
+
+```
 
 ### Requirements
 
