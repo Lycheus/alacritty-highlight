@@ -332,6 +332,9 @@ pub struct KeywordHighlightRule {
     /// Underline matches in addition to color overrides.
     #[serde(default)]
     pub underline: bool,
+    
+    #[serde(default)]
+    pub bold: bool,
 }
 
 

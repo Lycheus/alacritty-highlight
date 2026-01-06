@@ -30,6 +30,7 @@ Join [`#alacritty`] on libera.chat if you have questions or looking for a quick 
 ## Features
 
 You can find an overview over the features available in Alacritty [here](./docs/features.md).
+This is the spin-off version to include a terminal keyword highlighter. (mild performance degradation)
 
 ## Further information
 
@@ -54,58 +55,29 @@ For everyone else, the detailed instructions to install Alacritty can be found
 - [Windows] ConPTY support (Windows 10 version 1809 or higher)
 
 ## Configuration
+### Config example
 
-You can find the documentation for Alacritty's configuration in `man 5
-alacritty`, or by looking at [the website] if you do not have the manpages
-installed.
+Put this in ~/.config/alacritty/alacritty.toml:
 
-[the website]: https://alacritty.org/config-alacritty.html
+Or the other location that you use for alacritty configuration.
 
-Alacritty doesn't create the config file for you, but it looks for one in the
-following locations:
+```
+[keyword_highlight]
+enabled = true
 
-1. `$XDG_CONFIG_HOME/alacritty/alacritty.toml`
-2. `$XDG_CONFIG_HOME/alacritty.toml`
-3. `$HOME/.config/alacritty/alacritty.toml`
-4. `$HOME/.alacritty.toml`
-5. `/etc/alacritty/alacritty.toml`
+rules = [
+  # case-insensitive "kenny"
+  { regex = "(?i)kenny", foreground = "#FF8000"},
 
-On Windows, the config file will be looked for in:
+  # error-ish stuff
+  { regex = "(?i)error|failed|fatal", foreground = "#181818", background = "#ff5555", underline = true, bold = true },
 
-* `%APPDATA%\alacritty\alacritty.toml`
+  # warnings
+  { regex = "(?i)warning", foreground = "#181818", background = "#f1fa8c" },
+]
+```
 
-## Contributing
-
-A guideline about contributing to Alacritty can be found in the
-[`CONTRIBUTING.md`](CONTRIBUTING.md) file.
-
-## FAQ
-
-**_Is it really the fastest terminal emulator?_**
-
-Benchmarking terminal emulators is complicated. Alacritty uses
-[vtebench](https://github.com/alacritty/vtebench) to quantify terminal emulator
-throughput and manages to consistently score better than the competition using
-it. If you have found an example where this is not the case, please report a
-bug.
-
-Other aspects like latency or framerate and frame consistency are more difficult
-to quantify. Some terminal emulators also intentionally slow down to save
-resources, which might be preferred by some users.
-
-If you have doubts about Alacritty's performance or usability, the best way to
-quantify terminal emulators is always to test them with **your** specific
-usecases.
-
-**_Why isn't feature X implemented?_**
-
-Alacritty has many great features, but not every feature from every other
-terminal. This could be for a number of reasons, but sometimes it's just not a
-good fit for Alacritty. This means you won't find things like tabs or splits
-(which are best left to a window manager or [terminal multiplexer][tmux]) nor
-niceties like a GUI config editor.
-
-[tmux]: https://github.com/tmux/tmux
+Color format ("#RRGGBB") matches Alacritty’s documented config format.
 
 ## License
 

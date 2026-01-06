@@ -283,8 +283,11 @@ impl RenderableCell {
 		Self::compute_cell_rgb(&mut fg, &mut bg, &mut bg_alpha, rule.foreground, rule.background);
 
 		if rule.underline {
-		flags.insert(Flags::UNDERLINE);
+		    flags.insert(Flags::UNDERLINE);
 	    }
+        if rule.bold {
+            flags.insert(Flags::BOLD);
+        }
 	}
 
         // Apply transparency to all renderable cells if `transparent_background_colors` is set
